@@ -18,105 +18,20 @@ jobs:
         with:
           gradle-version: '8.4'
 
-      - name: Auto-generate clean Android project files
+      - name: Create Gradle Configs
         run: |
           rm -rf app build.gradle.kts settings.gradle.kts gradle.properties
           mkdir -p app/src/main/java/com/example/gametranslator
+          printf 'android.useAndroidX=true\norg.gradle.jvmargs=-Xmx2048m\n' > gradle.properties
+          printf 'pluginManagement {\n  repositories {\n    google()\n    mavenCentral()\n    gradlePluginPortal()\n  }\n}\ndependencyResolutionManagement {\n  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)\n  repositories {\n    google()\n    mavenCentral()\n  }\n}\nrootProject.name = "GameTranslator"\ninclude(":app")\n' > settings.gradle.kts
+          printf 'plugins {\n  id("com.android.application") version "8.2.0" apply false\n  id("org.jetbrains.kotlin.android") version "1.9.20" apply false\n}\n' > build.gradle.kts
+          printf 'plugins {\n  id("com.android.application")\n  id("org.jetbrains.kotlin.android")\n}\nandroid {\n  namespace = "com.example.gametranslator"\n  compileSdk = 34\n  defaultConfig {\n    applicationId = "com.example.gametranslator"\n    minSdk = 26\n    targetSdk = 34\n    versionCode = 1\n    versionName = "1.0"\n  }\n  compileOptions {\n    sourceCompatibility = JavaVersion.VERSION_17\n    targetCompatibility = JavaVersion.VERSION_17\n  }\n  kotlinOptions {\n    jvmTarget = "17"\n  }\n}\n' > app/build.gradle.kts
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n  <uses-permission android:name="android.permission.INTERNET" />\n  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />\n  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />\n  <application android:allowBackup="true" android:label="Gaminik AI Free" android:supportsRtl="true" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">\n    <activity android:name=".MainActivity" android:exported="true">\n      <intent-filter>\n        <action android:name="android.intent.action.MAIN" />\n        <category android:name="android.intent.category.LAUNCHER" />\n      </intent-filter>\n    </activity>\n    <service android:name=".FloatingTranslateService" android:enabled="true" android:exported="false" android:foregroundServiceType="mediaProjection" />\n  </application>\n</manifest>\n' > app/src/main/AndroidManifest.xml
 
-          cat << 'EOF' > gradle.properties
-          android.useAndroidX=true
-          org.gradle.jvmargs=-Xmx2048m
-          EOF
-
-          cat << 'EOF' > settings.gradle.kts
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "GameTranslator"
-          include(":app")
-          EOF
-
-          cat << 'EOF' > build.gradle.kts
-          plugins {
-              id("com.android.application") version "8.2.0" apply false
-              id("org.jetbrains.kotlin.android") version "1.9.20" apply false
-          }
-          EOF
-
-          cat << 'EOF' > app/build.gradle.kts
-          plugins {
-              id("com.android.application")
-              id("org.jetbrains.kotlin.android")
-          }
-
-          android {
-              namespace = "com.example.gametranslator"
-              compileSdk = 34
-
-              defaultConfig {
-                  applicationId = "com.example.gametranslator"
-                  minSdk = 26
-                  targetSdk = 34
-                  versionCode = 1
-                  versionName = "1.0"
-              }
-
-              compileOptions {
-                  sourceCompatibility = JavaVersion.VERSION_17
-                  targetCompatibility = JavaVersion.VERSION_17
-              }
-              kotlinOptions {
-                  jvmTarget = "17"
-              }
-          }
-          EOF
-
-          cat << 'EOF' > app/src/main/AndroidManifest.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-
-              <application
-                  android:allowBackup="true"
-                  android:label="Gaminik AI Free"
-                  android:supportsRtl="true"
-                  android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
-
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-
-                  <service
-                      android:name=".FloatingTranslateService"
-                      android:enabled="true"
-                      android:exported="false"
-                      android:foregroundServiceType="mediaProjection" />
-              </application>
-          </manifest>
-          EOF
-
-          cat << 'EOF' > app/src/main/java/com/example/gametranslator/MainActivity.kt
-          package com.example.gametranslator
+      - name: Create MainActivity.kt
+        run: |
+          python3 -c '
+          code = """package com.example.gametranslator
 
           import android.app.*
           import android.content.Context
@@ -442,4 +357,59 @@ jobs:
                   val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey)
                   val conn = url.openConnection() as HttpURLConnection
                   conn.requestMethod = "POST"
-             
+                  conn.setRequestProperty("Content-Type", "application/json")
+                  conn.doOutput = true
+
+                  val prompt = "Doc chu tieng Anh trong anh va dich sang tieng Viet. Ngu canh: " + gameCtx + ". Chi tra ve cau dich tieng Viet tu nhien, khong giai thich."
+
+                  val inlineData = JSONObject().apply {
+                      put("mime_type", "image/jpeg")
+                      put("data", base64Img)
+                  }
+                  val parts = JSONArray().apply {
+                      put(JSONObject().put("text", prompt))
+                      put(JSONObject().put("inline_data", inlineData))
+                  }
+                  val contents = JSONArray().put(JSONObject().put("parts", parts))
+                  val payload = JSONObject().put("contents", contents).toString()
+
+                  conn.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
+
+                  val responseText = if (conn.responseCode == 200) {
+                      conn.inputStream.bufferedReader().readText()
+                  } else {
+                      val err = conn.errorStream?.bufferedReader()?.readText() ?: "HTTP Error"
+                      return "Loi API: " + err
+                  }
+
+                  val jsonRes = JSONObject(responseText)
+                  return jsonRes.getJSONArray("candidates")
+                      .getJSONObject(0)
+                      .getJSONObject("content")
+                      .getJSONArray("parts")
+                      .getJSONObject(0)
+                      .getString("text")
+                      .trim()
+              }
+
+              override fun onDestroy() {
+                  virtualDisplay?.release()
+                  mediaProjection?.stop()
+                  if (::wm.isInitialized) wm.removeView(frameLayout)
+                  super.onDestroy()
+              }
+          }
+          """
+          with open("app/src/main/java/com/example/gametranslator/MainActivity.kt", "w") as f:
+              f.write(code.strip())
+          '
+
+      - name: Build Debug APK
+        run: gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gaminik-AI-Free-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+
