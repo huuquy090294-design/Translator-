@@ -6,30 +6,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.4'
-          
+
       - name: Generate Gradle configs and AndroidX properties
         run: |
           printf 'android.useAndroidX=true\nandroid.enableJetifier=true\norg.gradle.jvmargs=-Xmx2048m\n' > gradle.properties
           printf 'pluginManagement {\n  repositories {\n    google()\n    mavenCentral()\n    gradlePluginPortal()\n  }\n}\ndependencyResolutionManagement {\n  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)\n  repositories {\n    google()\n    mavenCentral()\n  }\n}\nrootProject.name = "GameTranslator"\ninclude(":app")\n' > settings.gradle.kts
           printf 'plugins {\n  id("com.android.application") version "8.2.0" apply false\n  id("org.jetbrains.kotlin.android") version "1.9.20" apply false\n}\n' > build.gradle.kts
-          
+
       - name: Build Debug APK
         run: gradle assembleDebug --stacktrace
-        
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
